@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "lib": ["ESNext", "DOM"],
+        "module": "ESNext",
+        "downlevelIteration": true,
+        "strict": true,
+        "allowSyntheticDefaultImports": true,
+        "importHelpers": true,
+        "declaration": true,
+        "moduleResolution": "Node",
+        "emitDeclarationOnly": true,
+        "declarationDir": "./types",
+        "paths":{}
+    },
+    "include": ["./src/*.ts"],
+    "exclude": ["node_modules"]
+}
