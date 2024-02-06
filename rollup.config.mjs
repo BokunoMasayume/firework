@@ -7,7 +7,7 @@ import serve from 'rollup-plugin-serve';
 import {babel} from '@rollup/plugin-babel';
 import typescript from 'rollup-plugin-typescript2';
 import dts from 'rollup-plugin-dts';
-import {string} from 'rollup-plugin-string';
+import { string } from 'rollup-plugin-string';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -86,6 +86,7 @@ export default [
                 tsconfig: baseTsconfig,
                 compilerOptions: {
                     preserveSymlinks: false,
+                    skipLibCheck: true,
                 }
             }),
         ]

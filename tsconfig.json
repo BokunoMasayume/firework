@@ -10,9 +10,11 @@
         "declaration": true,
         "moduleResolution": "Node",
         "emitDeclarationOnly": true,
-        "declarationDir": "./types",
-        "paths":{}
+        "declarationDir": "./src/@types",
+        "paths":{},
+        "typeRoots": ["./src/@types"]
+
     },
-    "include": ["./src/*.ts"],
+    "include": ["src"],
     "exclude": ["node_modules"]
 }

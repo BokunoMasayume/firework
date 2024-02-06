@@ -6,10 +6,13 @@
     <title>Document</title>
 </head>
 <body>
+    <canvas></canvas>
     <script type="module">
-        import { test} from '/dist/firework.mjs';
+        import { test, DemoParticle } from '/dist/firework.mjs';
 
         test();
+
+        new DemoParticle(document.querySelector('canvas'));
     </script>
 </body>
 </html>
