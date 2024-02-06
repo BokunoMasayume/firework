@@ -19,12 +19,16 @@ export function createShader(gl: WebGLContext, type: number, source: string): We
     return shader;
 }
 
-export function createProgram(gl: WebGLContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
+export function createProgram(gl: WebGLContext, vertexShader: WebGLShader, fragmentShader: WebGLShader, transformFeedbackVaryings?: string[]) {
     const program = gl.createProgram();
     if (!program || !vertexShader || !fragmentShader) return program;
 
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
+
+    if (transformFeedbackVaryings) {
+        gl.transformFeedbackVaryings(program, transformFeedbackVaryings, gl.SEPARATE_ATTRIBS);
+    }
 
     gl.linkProgram(program);
 

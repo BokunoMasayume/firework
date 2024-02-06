@@ -18,5 +18,5 @@ out highp vec4 pc_fragColor;
 // layout(location = ${i}) out vec4 fragData${i};
 
 void main() {
-    gl_FragColor = vec4(1., 0., 0., 1.);
+    gl_FragColor = vec4(0., 1., 0., 1.);
 }
