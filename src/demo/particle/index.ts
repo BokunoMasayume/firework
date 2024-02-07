@@ -4,7 +4,7 @@ import frag from './shader/simple.frag';
 import transformFeedbackVert from './shader/updatePosition.vert';
 import transformFeedbackFrag from './shader/updatePosition.frag';
 
-const NumParticles = 100;
+const NumParticles = 300;
 export class DemoParticle {
 
     canvas: HTMLCanvasElement;
@@ -101,13 +101,13 @@ export class DemoParticle {
         const velocities = new Float32Array(
             new Array(NumParticles).fill(0).map((_) => {
                 return [
-                    Math.random() * 300 - 150,
-                    Math.random() * 300 - 150
+                    Math.random() * 3 - 1.5,
+                    Math.random() * 3 - 1.5
                 ]
             }).flat()
         );
 
-        console.log(positions, velocities);
+        // console.log(positions, velocities);
 
         const velocityBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
@@ -187,6 +187,7 @@ export class DemoParticle {
             false,
             0, 0
         );
+        gl.enableVertexAttribArray(this.renderParameters.position as number);
 
 
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -230,7 +231,7 @@ export class DemoParticle {
         const delta = (now - this.time) / 1000;
         const { gl } = this;
         // gl.clearColor(0., 0., 0., .2);
-        gl.clear(this.gl.COLOR_BUFFER_BIT);
+        // gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         gl.useProgram(this.transformProgram);
         if (this.renderIdx === 0) {
