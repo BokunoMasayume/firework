@@ -33,8 +33,8 @@ export class PictureFirework {
     renderProgram: WebGLProgram | null = null;
     renderParameters?: ReturnType<typeof getParameters>;
 
-    currentState!: TransformFeedbackState & {idx: number};
-    nextState!: TransformFeedbackState & {idx: number};
+    currentState!: TransformFeedbackState;
+    nextState!: TransformFeedbackState;
 
     matrix?: Float32Array;
 
@@ -56,7 +56,6 @@ export class PictureFirework {
             const next = (current +1) % 2;
 
             return {
-                idx,
                 transformVa: this.createVaState([{
                     buffer: positionBuffers[current]!,
                     location: this.transformParameters!.oldPosition as number,
