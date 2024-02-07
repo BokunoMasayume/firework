@@ -8,8 +8,7 @@
 #define textureCubeLodExt textureLod
 
 #define gl_FragColor pc_fragColor
-precision highp float;
-precision highp int;
+
 precision highp sampler3D;
 precision highp float;
 precision highp int;

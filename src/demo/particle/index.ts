@@ -101,8 +101,8 @@ export class DemoParticle {
         const velocities = new Float32Array(
             new Array(NumParticles).fill(0).map((_) => {
                 return [
-                    Math.random() * 3 - 1.5,
-                    Math.random() * 3 - 1.5
+                    Math.random() * 30 - 15,
+                    Math.random() * 30 - 15
                 ]
             }).flat()
         );

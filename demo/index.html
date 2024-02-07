@@ -4,15 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <style>
+        canvas {
+            background-color: aliceblue;
+        }
+    </style>
 </head>
 <body>
     <canvas></canvas>
     <script type="module">
-        import { test, DemoParticle } from '/dist/firework.mjs';
+        import { test, DemoParticle, FireworkFrame, PictureFirework } from '/dist/firework.mjs';
 
         test();
 
-        window.demo = new DemoParticle(document.querySelector('canvas'));
+        // window.demo = new DemoParticle(document.querySelector('canvas'));
+
+        const fireworkFrame = new FireworkFrame(document.querySelector('canvas'));
+        const firework = new PictureFirework(fireworkFrame.gl, '/demo/assets/money.png');
+        firework.init().then(() => {
+            firework.render();
+        });
+
+        window.firework = firework;
     </script>
 </body>
 </html>
