@@ -1,10 +1,10 @@
-export type BufferState = {
+export type BufferStatus = {
     buffer: WebGLBuffer;
     location: number;
     numComponent: number;
 };
 
-export type TransformFeedbackState = {
+export type TransformFeedbackStatus = {
     id: number;
 
     transformVa: WebGLVertexArrayObject;

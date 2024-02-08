@@ -26,7 +26,7 @@ float rand( const in vec2 uv ) {
 void main() {
     vec2 uv = initPosition.xy / dimensions;
 
-    color = texture(colorMap, uv);
+    color = texture(colorMap, vec2(uv.s, 1. - uv.t));
     // color = vec4(0., 1., 0., color.a);
 
     vec2 base = dimensions * vec2(0.5, 0.2);

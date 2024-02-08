@@ -1,4 +1,4 @@
-import { BufferState, TransformFeedbackState } from "../../types/transformFeedback";
+import { BufferStatus, TransformFeedbackStatus } from "../../types/transformFeedback";
 import { WebGLContext, createProgram, createShader, getParameters } from "../../utils/webgl";
 
 import initTransVert from './shader/initTransformFeedback/initTrans.vert';
@@ -9,10 +9,10 @@ import renderVert from './shader/render/render.vert';
 import renderFrag from './shader/render/render.frag';
 import { loadImage } from "../../utils/loadImg";
 import { composeMatrix, matrixMultiply } from "../../utils/math";
+import { FireWorkState } from "../../types/common";
+import { BaseFirework } from "../base";
 
-export class PictureFirework {
-    gl: WebGLContext;
-
+export class PictureFirework extends BaseFirework{
     picUrl: string;
     texture!: WebGLTexture;
 
@@ -25,28 +25,23 @@ export class PictureFirework {
 
     numParticle = 0;
 
-    startTime!: number;
-    prevTime!: number;
-
     transformProgram: WebGLProgram | null = null;
     transformParameters?: ReturnType<typeof getParameters>;
 
     renderProgram: WebGLProgram | null = null;
     renderParameters?: ReturnType<typeof getParameters>;
 
-    currentState!: TransformFeedbackState;
-    nextState!: TransformFeedbackState;
+    currentStatus!: TransformFeedbackStatus;
+    nextStatus!: TransformFeedbackStatus;
 
     matrix?: Float32Array;
 
     initPositions?: Float32Array;
 
-    tickId: ReturnType<typeof setTimeout> | null = null
-
     particleTexture?: WebGLTexture;
 
     // 内部使用
-    private initTransfromFeedbackState?: {
+    private initTransfromFeedbackStatus?: {
         initTransParameters: any;
         initTransProgram: WebGLProgram;
 
@@ -59,7 +54,7 @@ export class PictureFirework {
     };
 
     constructor(gl: WebGLContext, url: string) {
-        this.gl = gl;
+        super(gl);
         this.picUrl = url;
         // TODO 
         this.showWidth = gl.canvas.width;
@@ -68,17 +63,18 @@ export class PictureFirework {
     }
 
     async init() {
+        this.state = FireWorkState.Init;
         const { gl } = this;
         const { initTransParameters, initTransProgram } = this.initProgram();
         const { positionBuffers, velocityAndSizeBuffers, colorBuffers } = this.initBuffers();
 
-        const createState = (idx = 0) => {
+        const createStatus = (idx = 0) => {
             const current = idx;
             const next = (current +1) % 2;
 
             return {
                 id: idx,
-                transformVa: this.createVaState([{
+                transformVa: this.createVaStatus([{
                     buffer: positionBuffers[current]!,
                     location: this.transformParameters!.oldPosition as number,
                     numComponent: 3
@@ -91,7 +87,7 @@ export class PictureFirework {
                     location: this.transformParameters!.oldVelocityAndSize as number,
                     numComponent: 4,
                 }])!,
-                renderVa: this.createVaState([
+                renderVa: this.createVaStatus([
                     {
                         buffer: positionBuffers[next]!,
                         location: this.renderParameters!.position as number,
@@ -106,31 +102,31 @@ export class PictureFirework {
                         numComponent: 4,
                     }
                 ])!,
-                tf: this.createTfState([
+                tf: this.createTfStatus([
                     positionBuffers[next]!,
                     colorBuffers[next]!,
                     velocityAndSizeBuffers[next]!
                 ]),
             }
         }
-        this.currentState = createState(0);
-        this.nextState = createState(1);
+        this.currentStatus = createStatus(0);
+        this.nextStatus = createStatus(1);
 
         // init buffer by initTransformFeedback
-        const initVa = this.createVaState([
+        const initVa = this.createVaStatus([
             {
                 buffer: positionBuffers[1]!,
                 location: initTransParameters!.initPosition as number,
                 numComponent: 3
             }
         ])!;
-        const initTf = this.createTfState([
+        const initTf = this.createTfStatus([
             positionBuffers[0]!,
             colorBuffers[0]!,
             velocityAndSizeBuffers[0]!
         ])!;
 
-        this.initTransfromFeedbackState = {
+        this.initTransfromFeedbackStatus = {
             initTransParameters,
             initTransProgram,
             initVa,
@@ -143,52 +139,46 @@ export class PictureFirework {
 
         await this.initTransformFeedback(false);
 
-        // gl.useProgram(initTransProgram);
-
-        // gl.bindVertexArray(initVa);
-
-        // gl.uniform2f(initTransParameters!.dimensions, this.showWidth, this.showHeight);
-        // gl.uniform1i(initTransParameters!.colorMap, 0);
-        // await this.initTexture(this.picUrl);
-        
-        // gl.enable(gl.RASTERIZER_DISCARD);
-        // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, initTf);
-        // gl.beginTransformFeedback(gl.POINTS);
-        // gl.drawArrays(gl.POINTS, 0, this.numParticle);
-        // gl.endTransformFeedback();
-        // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-        // gl.disable(gl.RASTERIZER_DISCARD);
-        // gl.bindVertexArray(null);
-
+        this.state = FireWorkState.Idle;
     }
 
     start() {
-        // const now = Date.now();
-        // this.startTime = now;
-        // this.prevTime = now;
 
-        if (this.tickId != null) {
+        // if (this.tickId != null) {
+        //     return;
+        // }
+
+        if (this.state === FireWorkState.Active) {
             return;
         }
-        this.render();
+        this.state = FireWorkState.Active;
+        // this.render();
+        const now = Date.now();
+        this.startTime = now;
+        this.prevTime = now;
     }
 
     async restart() {
-        if (this.tickId != null) {
-            cancelAnimationFrame(this.tickId);
-            this.tickId = null;
+        // if (this.tickId != null) {
+        //     cancelAnimationFrame(this.tickId);
+        //     this.tickId = null;
+        // }
+        if (this.state === FireWorkState.Init) {
+            return;
         }
+        this.state = FireWorkState.Init;
         const now = Date.now();
         this.startTime = now;
         this.prevTime = now;
 
         await this.initTransformFeedback();
 
-        this.tickId = requestAnimationFrame(this.render);
+        this.state = FireWorkState.Active;
+        // this.tickId = requestAnimationFrame(this.render);
     }
 
     async initTransformFeedback(needUpload = true) {
-        if (this.initTransfromFeedbackState == null) {
+        if (this.initTransfromFeedbackStatus == null) {
             return;
         }
         const { gl } = this;
@@ -201,12 +191,12 @@ export class PictureFirework {
             positionBuffers,
             velocityAndSizeBuffers,
             colorBuffers,
-        } = this.initTransfromFeedbackState;
+        } = this.initTransfromFeedbackStatus;
 
-        if (this.currentState.id !== 0) {
-            const temp = this.nextState;
-            this.nextState = this.currentState;
-            this.currentState = temp;
+        if (this.currentStatus.id !== 0) {
+            const temp = this.nextStatus;
+            this.nextStatus = this.currentStatus;
+            this.currentStatus = temp;
         }
         const currentIdx = 1;
 
@@ -234,7 +224,7 @@ export class PictureFirework {
         gl.bindVertexArray(null);
     }
 
-    private render = () => {
+    render = () => {
         const { gl } = this;
         const now = Date.now();
         if (!this.startTime || !this.prevTime) {
@@ -246,13 +236,13 @@ export class PictureFirework {
         const currentTime = (now - this.startTime) / 1000;
 
         gl.useProgram(this.transformProgram);
-        gl.bindVertexArray(this.currentState.transformVa);
+        gl.bindVertexArray(this.currentStatus.transformVa);
         gl.uniform1f(this.transformParameters!.deltaTime, delta);
         gl.uniform1f(this.transformParameters!.currentTime, currentTime);
 
 
         gl.enable(gl.RASTERIZER_DISCARD);
-        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.currentState.tf);
+        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.currentStatus.tf);
         gl.beginTransformFeedback(gl.POINTS);
         gl.drawArrays(gl.POINTS, 0, this.numParticle);
         gl.endTransformFeedback();
@@ -260,7 +250,7 @@ export class PictureFirework {
         gl.disable(gl.RASTERIZER_DISCARD);
 
         gl.useProgram(this.renderProgram);
-        gl.bindVertexArray(this.currentState.renderVa);
+        gl.bindVertexArray(this.currentStatus.renderVa);
 
         if (!this.matrix) {
             const clipMatrix = new Float32Array([
@@ -287,11 +277,11 @@ export class PictureFirework {
         gl.bindVertexArray(null);
 
         this.prevTime = now;
-        const temp = this.nextState;
-        this.nextState = this.currentState;
-        this.currentState = temp;
+        const temp = this.nextStatus;
+        this.nextStatus = this.currentStatus;
+        this.currentStatus = temp;
 
-        this.tickId = requestAnimationFrame(this.render);
+        // this.tickId = requestAnimationFrame(this.render);
     }
 
     initProgram() {
@@ -381,7 +371,6 @@ export class PictureFirework {
 
             const texture = gl.createTexture()!;
             gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -395,73 +384,6 @@ export class PictureFirework {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
         return this.texture;
-    }
-
-    private createVaState(states: BufferState[]) {
-        const { gl } = this;
-        const va = gl.createVertexArray();
-        gl.bindVertexArray(va);
-
-        states.forEach(state => {
-            gl.bindBuffer(gl.ARRAY_BUFFER, state.buffer);
-            gl.vertexAttribPointer(
-                state.location,
-                state.numComponent,
-                gl.FLOAT,
-                false,
-                0,
-                0,
-            );
-            gl.enableVertexAttribArray(state.location);
-        });
-
-        gl.bindVertexArray(null);
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        return va;
-    }
-
-    private createTfState(buffers: WebGLBuffer[]) {
-        const { gl } = this;
-
-        const tf = gl.createTransformFeedback();
-
-        if (!tf) {
-            throw new Error(`[Firework] Failed to create TransformFeedback (pictureFirework)`);
-        }
-
-        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
-
-        buffers.forEach((buffer, idx) => {
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, idx, buffer);
-        });
-
-        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        return tf;
-    }
-
-    private initBuffer(data: Float32Array) {
-        const { gl } = this;
-        const buffer = gl.createBuffer();
-        this.gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        this.gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-        if (buffer == null) {
-            throw new Error(`[Firework] Failed to create buffer (pictureFirework)`);
-        }
-        return buffer;
-    }
-
-    // 慎用, 似乎会和transform feedback冲突, 导致无法写入
-    private readBuffer(buffer: WebGLBuffer, size: number) {
-        const { gl } = this;
-        const results = new Float32Array(size);
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.getBufferSubData(
-            gl.ARRAY_BUFFER,
-            0,    // byte offset into GPU buffer,
-            results,
-        );
-        return results;
     }
 
     // 临时的, for debug
@@ -482,7 +404,7 @@ export class PictureFirework {
 
         const texture = gl.createTexture()!;
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
