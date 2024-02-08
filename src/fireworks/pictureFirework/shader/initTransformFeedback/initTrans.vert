@@ -32,9 +32,11 @@ void main() {
     vec2 base = dimensions * vec2(0.5, 0.2);
     position = vec3(base, 0.);
 
-    float size = 2. + 3. * rand(uv);
+    float size = 5. + 5. * rand(uv);
 
-    vec3 velocity = vec3((initPosition.xy - base) * .8, .1);
+    vec3 velocity = vec3((initPosition.xy - base) * 2.8, .1);
+    velocity.x = velocity.x + rand(uv + vec2(initPosition.xy)) * 45.;
+    velocity.y = velocity.y + rand(uv - vec2(initPosition.yx)) * 45.;
 
     velocityAndSize = vec4(velocity, size);
 }

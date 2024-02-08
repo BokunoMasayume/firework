@@ -5,6 +5,8 @@ export type BufferState = {
 };
 
 export type TransformFeedbackState = {
+    id: number;
+
     transformVa: WebGLVertexArrayObject;
     renderVa: WebGLVertexArrayObject;
     tf: WebGLTransformFeedback;

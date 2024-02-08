@@ -16,7 +16,9 @@ out vec3 position;
 out vec4 color;
 out vec4 velocityAndSize;
 
-#define GRAVITY 45.
+#define GRAVITY 25.
+
+#define DAMPEN 2.
 
 void main() {
     vec3 baseVel = oldVelocityAndSize.xyz;
@@ -26,10 +28,17 @@ void main() {
     float scaleVel = 0.;
     if (currentTime > 1.2) {
         scaleVel = -1.;
-        baseVel *= 0.5 * deltaTime;
+        // baseVel *= 0.5 * deltaTime;
     }
 
-    baseVel.y = baseVel.y - deltaTime * GRAVITY;
+
+    float vel = length(baseVel);
+    vec3 dir = normalize(baseVel);
+    if (abs(vel) > 10.) {
+        baseVel = baseVel - dir * (vel - 10. * sign(vel)) * DAMPEN * deltaTime;
+    }
+    baseVel.y = baseVel.y - currentTime * GRAVITY * (oldVelocityAndSize.w / 10. *0.2 + 0.8) ;
+
 
     velocityAndSize = vec4(baseVel, oldVelocityAndSize.w + oldVelocityAndSize.w * deltaTime * scaleVel );
     // color = oldColor;

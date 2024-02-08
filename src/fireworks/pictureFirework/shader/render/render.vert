@@ -10,7 +10,8 @@ uniform mat4 matrix;
 out vec4 vColor;
 
 void main() {
-    gl_PointSize = velocityAndSize.w;
+    gl_PointSize = vec4(matrix * vec4(vec3(velocityAndSize.w * 1000.), 0.)).x ;
+    // gl_PointSize = velocityAndSize.w;
     gl_Position = matrix * vec4(position, 1.);
 
     vColor = color;

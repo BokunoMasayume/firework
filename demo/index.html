@@ -5,13 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+        }
         canvas {
-            background-color: aliceblue;
+            background-color: rgb(14, 14, 15);
+            width: 100vw;
+            height: 100vh;
+            max-height: 1000px;
+        }
+        #btns {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            color: white;
+            cursor: pointer;
+            user-select: none;
         }
     </style>
 </head>
 <body>
     <canvas></canvas>
+    <div id="btns">
+        <div id="replay">重新播放</div>
+    </div>
     <script type="module">
         import { test, DemoParticle, FireworkFrame, PictureFirework } from '/dist/firework.mjs';
 
@@ -22,7 +41,11 @@
         const fireworkFrame = new FireworkFrame(document.querySelector('canvas'));
         const firework = new PictureFirework(fireworkFrame.gl, '/demo/assets/money.png');
         firework.init().then(() => {
-            firework.render();
+            firework.start();
+
+            document.querySelector('#replay').addEventListener('click', () => {
+                firework.restart();
+            })
         });
 
         window.firework = firework;

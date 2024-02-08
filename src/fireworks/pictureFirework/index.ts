@@ -19,8 +19,9 @@ export class PictureFirework {
     showWidth: number;
     showHeight: number;
 
+    wantedNumParticle = 2000;
     // 每像素有几个粒子
-    density: number = 0.1;
+    private density: number = 0.02;
 
     numParticle = 0;
 
@@ -38,12 +39,32 @@ export class PictureFirework {
 
     matrix?: Float32Array;
 
+    initPositions?: Float32Array;
+
+    tickId: ReturnType<typeof setTimeout> | null = null
+
+    particleTexture?: WebGLTexture;
+
+    // 内部使用
+    private initTransfromFeedbackState?: {
+        initTransParameters: any;
+        initTransProgram: WebGLProgram;
+
+        initVa: WebGLVertexArrayObject;
+        initTf: WebGLTransformFeedback;
+
+        positionBuffers: WebGLBuffer[];
+        velocityAndSizeBuffers: WebGLBuffer[];
+        colorBuffers: WebGLBuffer[];
+    };
+
     constructor(gl: WebGLContext, url: string) {
         this.gl = gl;
         this.picUrl = url;
         // TODO 
         this.showWidth = gl.canvas.width;
-        this.showHeight = gl.canvas.height;
+        this.showHeight = this.showWidth;
+        this.density = Math.sqrt(this.wantedNumParticle / ( this.showHeight * this.showWidth));
     }
 
     async init() {
@@ -56,6 +77,7 @@ export class PictureFirework {
             const next = (current +1) % 2;
 
             return {
+                id: idx,
                 transformVa: this.createVaState([{
                     buffer: positionBuffers[current]!,
                     location: this.transformParameters!.oldPosition as number,
@@ -94,8 +116,6 @@ export class PictureFirework {
         this.currentState = createState(0);
         this.nextState = createState(1);
 
-        gl.useProgram(initTransProgram);
-
         // init buffer by initTransformFeedback
         const initVa = this.createVaState([
             {
@@ -103,21 +123,107 @@ export class PictureFirework {
                 location: initTransParameters!.initPosition as number,
                 numComponent: 3
             }
-        ]);
+        ])!;
         const initTf = this.createTfState([
             positionBuffers[0]!,
             colorBuffers[0]!,
             velocityAndSizeBuffers[0]!
-        ])
-        // const initTf = this.nextState.tf;
+        ])!;
+
+        this.initTransfromFeedbackState = {
+            initTransParameters,
+            initTransProgram,
+            initVa,
+            initTf,
+
+            positionBuffers,
+            velocityAndSizeBuffers,
+            colorBuffers,
+        };
+
+        await this.initTransformFeedback(false);
+
+        // gl.useProgram(initTransProgram);
+
+        // gl.bindVertexArray(initVa);
+
+        // gl.uniform2f(initTransParameters!.dimensions, this.showWidth, this.showHeight);
+        // gl.uniform1i(initTransParameters!.colorMap, 0);
+        // await this.initTexture(this.picUrl);
+        
+        // gl.enable(gl.RASTERIZER_DISCARD);
+        // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, initTf);
+        // gl.beginTransformFeedback(gl.POINTS);
+        // gl.drawArrays(gl.POINTS, 0, this.numParticle);
+        // gl.endTransformFeedback();
+        // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+        // gl.disable(gl.RASTERIZER_DISCARD);
+        // gl.bindVertexArray(null);
+
+    }
+
+    start() {
+        // const now = Date.now();
+        // this.startTime = now;
+        // this.prevTime = now;
+
+        if (this.tickId != null) {
+            return;
+        }
+        this.render();
+    }
+
+    async restart() {
+        if (this.tickId != null) {
+            cancelAnimationFrame(this.tickId);
+            this.tickId = null;
+        }
+        const now = Date.now();
+        this.startTime = now;
+        this.prevTime = now;
+
+        await this.initTransformFeedback();
+
+        this.tickId = requestAnimationFrame(this.render);
+    }
+
+    async initTransformFeedback(needUpload = true) {
+        if (this.initTransfromFeedbackState == null) {
+            return;
+        }
+        const { gl } = this;
+        const {
+            initTransParameters,
+            initTransProgram,
+            initVa,
+            initTf,
+
+            positionBuffers,
+            velocityAndSizeBuffers,
+            colorBuffers,
+        } = this.initTransfromFeedbackState;
+
+        if (this.currentState.id !== 0) {
+            const temp = this.nextState;
+            this.nextState = this.currentState;
+            this.currentState = temp;
+        }
+        const currentIdx = 1;
+
+        if (needUpload && this.initPositions) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffers[currentIdx]!);
+            gl.bufferData(gl.ARRAY_BUFFER, this.initPositions, gl.DYNAMIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        }
+
+        gl.useProgram(initTransProgram);
 
         gl.bindVertexArray(initVa);
 
-        // uniform sampler2D colorMap;
         gl.uniform2f(initTransParameters!.dimensions, this.showWidth, this.showHeight);
         gl.uniform1i(initTransParameters!.colorMap, 0);
-        await this.initTexture();
-        
+        await this.initTexture(this.picUrl);
+
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, initTf);
         gl.beginTransformFeedback(gl.POINTS);
@@ -126,11 +232,9 @@ export class PictureFirework {
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
         gl.disable(gl.RASTERIZER_DISCARD);
         gl.bindVertexArray(null);
-
-
     }
 
-    render = () => {
+    private render = () => {
         const { gl } = this;
         const now = Date.now();
         if (!this.startTime || !this.prevTime) {
@@ -161,7 +265,7 @@ export class PictureFirework {
         if (!this.matrix) {
             const clipMatrix = new Float32Array([
                 2 / this.showWidth, 0, 0, 0,
-                0, 2 / this.showHeight, 0, 0,
+                0, 2 / this.gl.canvas.height, 0, 0,
                 0, 0, 1, 0,
                 -1, -1, 0, 1
             ]);
@@ -187,7 +291,7 @@ export class PictureFirework {
         this.nextState = this.currentState;
         this.currentState = temp;
 
-        requestAnimationFrame(this.render);
+        this.tickId = requestAnimationFrame(this.render);
     }
 
     initProgram() {
@@ -253,6 +357,8 @@ export class PictureFirework {
             }).flat()
         );
 
+        this.initPositions = positions;
+
         const colors = new Float32Array(this.numParticle * 4);
         const velocityAndSize = new Float32Array(this.numParticle * 4);
 
@@ -267,25 +373,28 @@ export class PictureFirework {
         }
     }
 
-    async initTexture() {
+    async initTexture(url: string) {
         const { gl } = this;
 
-        const img = await loadImage(this.picUrl);
+        if (!this.texture) {
+            const img = await loadImage(url);
 
-        const texture = gl.createTexture()!;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        this.texture = texture;
+            const texture = gl.createTexture()!;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+
+            this.texture = texture;
+        }
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-        return texture;
+        return this.texture;
     }
 
     private createVaState(states: BufferState[]) {
@@ -336,6 +445,9 @@ export class PictureFirework {
         const buffer = gl.createBuffer();
         this.gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         this.gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+        if (buffer == null) {
+            throw new Error(`[Firework] Failed to create buffer (pictureFirework)`);
+        }
         return buffer;
     }
 
@@ -350,6 +462,36 @@ export class PictureFirework {
             results,
         );
         return results;
+    }
+
+    // 临时的, for debug
+    createParticleTexture() {
+        const { gl } = this;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d')!;
+        const grd = ctx.createRadialGradient(50, 50, 5, 50, 50, 50);
+        grd.addColorStop(0, "white");
+        grd.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, 100, 100);
+        document.body.appendChild(canvas);
+
+        const texture = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        return texture;
     }
 
 }
