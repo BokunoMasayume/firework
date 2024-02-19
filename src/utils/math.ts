@@ -100,6 +100,49 @@ export function quatFromRotationMatrix(m: Float32Array, dst:Float32Array = new F
     return dst;
 }
 
+export function getAxisQuat(n: number, axis: 'x'|'y'|'z', dst: Float32Array = new Float32Array(4)) {
+    dst[0] = 0;
+    dst[1] = 0;
+    dst[2] = 0;
+    dst[3] = Math.cos(n / 2);
+
+    switch (axis) {
+        case 'y':
+            dst[1] = Math.sin(n / 2);
+            break;
+        case 'z':
+            dst[2] = Math.sin(n / 2);
+            break;
+        default:
+            dst[0] = Math.sin(n / 2);
+            break;
+    }
+    return dst;
+}
+
+export function quatMultiply(p: Float32Array, q: Float32Array, dst: Float32Array = new Float32Array(4)) {
+    dst[0] = p[3] * q[0] + p[0] * q[3] + p[1] * q[2] - p[2] * q[1];
+    dst[1] = p[3] * q[1] - p[0] * q[2] + p[1] * q[3] + p[2] * q[0];
+    dst[2] = p[3] * q[2] + p[0] * q[1] - p[1] * q[0] + p[2] * q[3];
+    dst[3] = p[3] * q[3] - p[0] * q[0] - p[1] * q[1] - p[2] * q[2];
+    return dst;
+}
+
+export function quatFromEuler(x: number, y: number, z: number, dst: Float32Array = new Float32Array(4)) {
+
+    const xq = getAxisQuat(x, 'x');
+    const yq = getAxisQuat(y, 'y');
+    const zq = getAxisQuat(z, 'z');
+
+    quatMultiply(
+        xq,
+        quatMultiply(yq, zq),
+        dst
+    );
+
+    return dst;
+}
+
 export function matrixDeterminate(m: Float32Array): number {
     const m00 = m[0 * 4 + 0];
     const m01 = m[0 * 4 + 1];

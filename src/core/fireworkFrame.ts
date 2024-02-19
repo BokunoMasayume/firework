@@ -55,6 +55,7 @@ export class FireworkFrame {
     render = () => {
 
         const { gl } = this;
+
         if (this.postEffects.length > 0) {
             this.setRenderTarget(this.postEffects[0]!.framebuffer);
             this.gl.viewport(0, 0, this.postEffects[0]!.width, this.postEffects[0]!.height );

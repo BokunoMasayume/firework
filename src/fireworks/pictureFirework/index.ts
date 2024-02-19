@@ -148,7 +148,7 @@ export class PictureFirework extends BaseFirework{
         //     return;
         // }
 
-        if (this.state === FireWorkState.Active) {
+        if (this.state !== FireWorkState.Idle) {
             return;
         }
         this.state = FireWorkState.Active;
@@ -182,6 +182,7 @@ export class PictureFirework extends BaseFirework{
             return;
         }
         const { gl } = this;
+
         const {
             initTransParameters,
             initTransProgram,
@@ -206,13 +207,15 @@ export class PictureFirework extends BaseFirework{
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
         }
 
+        await this.initTexture(this.picUrl);
+
+
         gl.useProgram(initTransProgram);
 
         gl.bindVertexArray(initVa);
 
         gl.uniform2f(initTransParameters!.dimensions, this.showWidth, this.showHeight);
         gl.uniform1i(initTransParameters!.colorMap, 0);
-        await this.initTexture(this.picUrl);
 
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, initTf);
