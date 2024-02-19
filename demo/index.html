@@ -32,24 +32,27 @@
         <div id="replay">重新播放</div>
     </div>
     <script type="module">
-        import { DemoParticle, FireworkFrame, PictureFirework, quatFromEuler, getAxisQuat, quatMultiply } from '/dist/firework.mjs';
+        import { DemoParticle, FireworkFrame, PictureFirework, quatFromEuler, getAxisQuat, quatMultiply, StandardFirework } from '/dist/firework.mjs';
 
 
         // window.demo = new DemoParticle(document.querySelector('canvas'));
 
         const fireworkFrame = new FireworkFrame(document.querySelector('canvas'));
 
-        const firework = fireworkFrame.addFirework(PictureFirework, '/demo/assets/money.png');
         fireworkFrame.start();
+        // const firework = fireworkFrame.addFirework(PictureFirework, '/demo/assets/money.png');
 
-        firework.init().then (() => {
-            // transform feedback 和 切换framebuffer不兼容
+        // firework.init().then (() => {
+        //     // transform feedback 和 切换framebuffer不兼容
 
-            firework.start();
-            document.querySelector('#replay').addEventListener('click', () => {
-                firework.restart();
-            })
-        })
+        //     firework.start();
+        //     document.querySelector('#replay').addEventListener('click', () => {
+        //         firework.restart();
+        //     })
+        // });
+
+        const firework = fireworkFrame.addFirework(StandardFirework);
+        firework.start();
 
         window.firework = firework;
 
