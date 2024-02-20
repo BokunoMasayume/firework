@@ -27,16 +27,15 @@ float rand( const in vec2 uv ) {
 }
 
 float hash ( float p ) {
-    p = 50. * fract(p * 0.3183099);
+    p = 50.553 * fract(sin(p) * 0.3183099);
     return fract( p );
 }
 
 void main() {
 
-    // float seedX = hash(float(gl_VertexID));
-    float seedX = hash(float(gl_VertexID) + oldPosition_seed.x);
-    float seedY = hash(seedX);
-    float seedZ = hash(seedY);
+    float seedX = hash(float(gl_VertexID) * 0.12 + oldPosition_seed.x);
+    float seedY = rand(vec2(seedX, seedX * seedX));
+    float seedZ = rand(vec2(seedX, seedY));
 
     // 球面坐标系
     vec3 position = initPosition + vec3(
@@ -48,7 +47,7 @@ void main() {
     // vec3 position = initPosition;
     // vec3 position = vec3(0., 0., 0.);
 
-    vec3 velocity = vec3(0., 1., 0.);
+    vec3 velocity = vec3(0., 40., 0.);
 
     float seed = hash(seedZ);
     

@@ -50,7 +50,6 @@ export function getUniforms(
 ): { [name: string]: WebGLUniformLocation | null } {
     const uniforms: { [name: string]: WebGLUniformLocation | null } = {};
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-    console.log('uniformcount', uniformCount)
     for (let i = 0; i < uniformCount; i++) {
         let uniformName = gl.getActiveUniform(program, i)!.name;
         uniforms[uniformName] = gl.getUniformLocation(program, uniformName);

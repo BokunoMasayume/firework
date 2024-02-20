@@ -104,6 +104,12 @@ export class Transform {
         }
     }
 
+    set s3(n: number) {
+        this.sx = n;
+        this.sy = n;
+        this.sz = n;
+    }
+
     // components of rotation , radius
     get rx() {
         return this.iEulerRotation[0];

@@ -93,6 +93,8 @@ export class StandardFirework extends BaseFirework {
 
     constructor(gl: WebGLContext) {
         super(gl);
+
+        this.transform.s3 = 10;
     }
 
     init() {
@@ -228,21 +230,24 @@ export class StandardFirework extends BaseFirework {
         // render
         gl.useProgram(this.renderProgram);
         gl.bindVertexArray(this.currentStatus.renderVa);
-        const clipMatrix = new Float32Array([
-            2 / 10, 0, 0, 0,
-            0, 2 / 10, 0, 0,
-            0, 0, 1, 0,
-            -1, -1, 0, 1
-        ]);
-        const transformMatrix = composeMatrix(
-            [0, 0.1, 0],
-            [0, 0, 0, 1],
-            [0.5, 0.5, 0.5]
-        );
-        
-        const matrix = matrixMultiply(transformMatrix, clipMatrix);
+        // const clipMatrix = new Float32Array([
+        //     2 / 100, 0, 0, 0,
+        //     0, 2 / 100, 0, 0,
+        //     0, 0, 1, 0,
+        //     0,0, 0, 1
+        // ]);
+        // const transformMatrix = composeMatrix(
+        //     [0, 0.1, 0],
+        //     [0, 0, 0, 1],
+        //     [0.5, 0.5, 0.5]
+        // );
+        // const matrix = matrixMultiply(transformMatrix, clipMatrix);
 
-        gl.uniformMatrix4fv(this.renderParameters!.matrix, false, matrix);
+
+        this.matrix = matrixMultiply(this.viewProjectionMatrix!, this.transform.matrix, this.matrix);
+        
+
+        gl.uniformMatrix4fv(this.renderParameters!.matrix, false, this.matrix);
 
         gl.drawArrays(gl.POINTS, 0, this.numParticle);
         gl.bindVertexArray(null);
@@ -253,7 +258,7 @@ export class StandardFirework extends BaseFirework {
         this.currentStatus = temp;
     }
 
-    async start() {
+    start() {
 
         if (this.state !== FireWorkState.Blank && this.state !== FireWorkState.Idle) {
             return;
@@ -263,12 +268,9 @@ export class StandardFirework extends BaseFirework {
         this.startTime = now;
         this.prevTime = now;
 
-        // await sleep(100);
-
         switch (this.state) {
             case FireWorkState.Blank:
                 this.init();
-                await sleep(100);
                 this.initTransformFeedback();
                 break;
             case FireWorkState.Idle:

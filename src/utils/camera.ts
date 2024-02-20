@@ -49,7 +49,7 @@ export class Camera extends Transform {
         this.projectionMatrix[12] = 0;
         this.projectionMatrix[13] = 0;
         this.projectionMatrix[14] =  - (this.far + this.near) / (this.far - this.near);
-        this.projectionMatrix[15] = 0;
+        this.projectionMatrix[15] = 1;
 
         return this.projectionMatrix;
     }

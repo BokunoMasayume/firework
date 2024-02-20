@@ -1,5 +1,6 @@
 import { FireWorkState } from "../../types/common";
 import type { BufferStatus } from "../../types/transformFeedback";
+import { Transform } from "../../utils/transform";
 import { type WebGLContext } from "../../utils/webgl";
 
 let idIncreasing = 0;
@@ -17,6 +18,9 @@ export abstract class BaseFirework {
 
     startTime!: number;
     prevTime!: number;
+
+    viewProjectionMatrix?: Float32Array;
+    transform = new Transform;
 
     constructor(gl: WebGLContext) {
         this.id = idIncreasing ++;

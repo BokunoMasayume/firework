@@ -1,6 +1,7 @@
 import { BaseFirework } from "../fireworks/base";
 import { DemoPostEffect } from "../postEffects/demo";
 import { FireWorkState, FireworkConfigParams } from "../types/common";
+import { Camera } from "../utils/camera";
 import { WebGLContext } from "../utils/webgl";
 
 export class FireworkFrame {
@@ -15,10 +16,16 @@ export class FireworkFrame {
 
     postEffects: DemoPostEffect[] = [];
 
+    camera: Camera;
+
     constructor(can: HTMLCanvasElement) {
         this.canvas = can;
         can.width = can.clientWidth * this.ratio;
         can.height = can.clientHeight * this.ratio;
+
+        const width = 1000;
+        this.camera = new Camera(width, can.height / can.width * width, 0.1, 20);
+        this.camera.z = 10;
 
         const gl = this.canvas.getContext('webgl2');
 
@@ -40,6 +47,7 @@ export class FireworkFrame {
         fireworkClass: R, ...args: FireworkConfigParams<R>
     ): InstanceType<R> {
         const fw = new fireworkClass(this.gl, ...args) as InstanceType<R>;
+        fw.viewProjectionMatrix = this.camera.viewProjectionMatrix;
         this.fireworks.push(fw);
         return fw;
     }

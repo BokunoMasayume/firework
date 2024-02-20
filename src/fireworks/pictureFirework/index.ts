@@ -11,6 +11,7 @@ import { loadImage } from "../../utils/loadImg";
 import { composeMatrix, matrixMultiply } from "../../utils/math";
 import { FireWorkState } from "../../types/common";
 import { BaseFirework } from "../base";
+import { Transform } from "../../utils/transform";
 
 export class PictureFirework extends BaseFirework{
     picUrl: string;
@@ -60,6 +61,12 @@ export class PictureFirework extends BaseFirework{
         this.showWidth = gl.canvas.width;
         this.showHeight = this.showWidth;
         this.density = Math.sqrt(this.wantedNumParticle / ( this.showHeight * this.showWidth));
+
+        this.transform.s3 = 0.2;
+
+        this.transform.x = - this.showWidth / 2 * this.transform.sx;
+        this.transform.y = - this.showHeight / 2 * this.transform.sy;
+        
     }
 
     async init() {
@@ -255,21 +262,26 @@ export class PictureFirework extends BaseFirework{
         gl.useProgram(this.renderProgram);
         gl.bindVertexArray(this.currentStatus.renderVa);
 
-        if (!this.matrix) {
-            const clipMatrix = new Float32Array([
-                2 / this.showWidth, 0, 0, 0,
-                0, 2 / this.gl.canvas.height, 0, 0,
-                0, 0, 1, 0,
-                -1, -1, 0, 1
-            ]);
-            const transformMatrix = composeMatrix(
-                [0, 0.1, 0],
-                [0, 0, 0, 1],
-                [0.5, 0.5, 0.5]
-            );
+        // if (!this.matrix) {
+        //     const clipMatrix = new Float32Array([
+        //         2 / this.showWidth, 0, 0, 0,
+        //         0, 2 / this.gl.canvas.height, 0, 0,
+        //         0, 0, 1, 0,
+        //         -1, -1, 0, 1
+        //     ]);
+        //     const transformMatrix = composeMatrix(
+        //         [0, 0.1, 0],
+        //         [0, 0, 0, 1],
+        //         [0.5, 0.5, 0.5]
+        //     );
             
-            this.matrix = matrixMultiply(transformMatrix, clipMatrix);
-        }
+        //     this.matrix = matrixMultiply(transformMatrix, clipMatrix);
+        // }
+        // this.transform.sz = -0.2;
+        // this.transform.z = -2;
+
+
+        this.matrix = matrixMultiply(this.viewProjectionMatrix!, this.transform.matrix, this.matrix);
         gl.uniformMatrix4fv(
             this.renderParameters!.matrix,
             false,
