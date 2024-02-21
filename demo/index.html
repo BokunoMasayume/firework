@@ -53,7 +53,9 @@
 
         const firework = fireworkFrame.addFirework(StandardFirework);
         firework.start();
-
+        document.querySelector('#replay').addEventListener('click', () => {
+                firework.restart();
+            })
         window.firework = firework;
 
 

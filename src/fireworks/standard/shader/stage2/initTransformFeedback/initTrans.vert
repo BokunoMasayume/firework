@@ -5,16 +5,12 @@
 #define RECIPROCAL_PI 0.3183098861837907
 #define EPSILON 1e-6
 
-
 #define STATE_DEFAULT 0.
 #define STATE_GROUP_MEMBER 1.
 #define STATE_GROUP_DROP 2.
 
 uniform vec3 initPosition;
-
 uniform float currentTime;
-
-// in vec4 oldPosition_seed;
 
 out vec4 position_seed;
 out vec4 velocity_blank;
@@ -32,39 +28,27 @@ float hash ( float p ) {
 }
 
 void main() {
-
     float seedX = hash(float(gl_VertexID) * 0.12);
     // float seedX = hash(float(gl_VertexID) * 0.12 + oldPosition_seed.x);
     float seedY = rand(vec2(seedX, seedX * seedX));
     float seedZ = rand(vec2(seedX, seedY));
 
-    // 球面坐标系
-    vec3 position = initPosition + vec3(
-        seedZ * sin(PI * seedX) * sin(2. * PI * seedY),
-        seedZ * sin(PI * seedX) * cos(2. * PI * seedY),
-        seedZ * cos(PI * seedX)
-    );
-
-    // vec3 position = initPosition;
-    // vec3 position = vec3(0., 0., 0.);
-
-    vec3 velocity = vec3(0., 50., 0.);
-
     float seed = hash(seedZ);
-    
-
     position_seed = vec4(
-        position,
+        initPosition,
         seed
     );
+
     velocity_blank = vec4(
-        velocity,
+        seedX,
+        seedY,
+        seedZ,
         0.
-    );
+    ) * 3.;
 
     birthTime_lifeTime_size_state = vec4(
-        0.3,
         currentTime,
+        1.,
         5. + 5. * seed,
         STATE_GROUP_MEMBER
     );

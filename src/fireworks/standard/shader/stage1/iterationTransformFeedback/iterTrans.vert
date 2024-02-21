@@ -46,13 +46,14 @@ void main() {
         // vec3 position = oldPosition_seed.xyz + vec3(0., 0.1, 0.);
         // vec3 position = vec3(1., 3., 0.) * currentTime;
         vec3 position = oldPosition_seed.xyz + oldVelocity_blank.xyz * deltaTime;
-        if (abs(seedZ) < 0.2 * deltaTime) {
+        if (abs(seedZ) < 0.02) {
+        // if (abs(seedZ) < 1. * deltaTime) {
             // 掉队
             state = STATE_GROUP_DROP;
             // 更新速度和birthtime lifetime
             vec3 velocity = normalize(cross(oldVelocity_blank.xyz, vec3(seedX, seedY, seedZ) ));
             // velocity_blank = vec4(0., 0., 0., 0.);
-            velocity_blank = vec4(velocity, 0.);
+            velocity_blank = vec4(velocity * 3., 0.);
             birthTime_lifeTime_size_state = vec4(
                 currentTime,
                 2. * seedZ,

@@ -37,9 +37,9 @@ export class FireworkFrame {
 
 
         // TODO demo
-        // this.postEffects.push(
-        //     new DemoPostEffect(this.gl)
-        // );
+        this.postEffects.push(
+            new DemoPostEffect(this.gl)
+        );
 
     }
 

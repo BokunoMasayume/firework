@@ -7,8 +7,12 @@ import stage1InitTransVert from './shader/stage1/initTransformFeedback/initTrans
 import stage1InitTransFrag from './shader/stage1/initTransformFeedback/initTrans.frag';
 import stage1IterTransVert from './shader/stage1/iterationTransformFeedback/iterTrans.vert';
 import stage1IterTransFrag from './shader/stage1/iterationTransformFeedback/iterTrans.frag';
-import stage1RenderVert from './shader/stage1/render/render.vert';
-import stage1RenderFrag from './shader/stage1/render/render.frag';
+import renderVert from './shader/render/render.vert';
+import renderFrag from './shader/render/render.frag';
+import stage2InitTransVert from './shader/stage2/initTransformFeedback/initTrans.vert';
+import stage2InitTransFrag from './shader/stage2/initTransformFeedback/initTrans.frag';
+import stage2IterTransVert from './shader/stage2/iterationTransformFeedback/iterTrans.vert';
+import stage2IterTransFrag from './shader/stage2/iterationTransformFeedback/iterTrans.frag';
 import { composeMatrix, matrixMultiply } from "../../utils/math";
 import { sleep } from "../../utils/common";
 
@@ -56,22 +60,30 @@ export class StandardFirework extends BaseFirework {
     transformProgram: WebGLProgram | null = null;
     transformParameters?: ReturnType<typeof getParameters>;
 
-    // stage1 render
-    renderProgram: WebGLProgram | null = null;
-    renderParameters?: ReturnType<typeof getParameters>;
+    // stage2 iter transform feedback
+    stage2TransformProgram: WebGLProgram | null = null;
+    stage2TransformParameters?: ReturnType<typeof getParameters>;
 
-    // stage1 status
+    // status
     currentStatus!: TransformFeedbackStatus;
     nextStatus!: TransformFeedbackStatus;
 
-    // stage1 init transform feedback status
+    // stage1 & 2 init transform feedback status
     initTransformFeedbackStatus?: {
         initTransParameters: any;
         initTransProgram: WebGLProgram;
 
+        // stage 2 init transform feedback 
+        stage2InitTransParameters: any;
+        stage2InitTransProgram: WebGLProgram;
+
         initVa: WebGLVertexArrayObject;
         initTf: WebGLTransformFeedback;
     }
+
+    // render
+    renderProgram: WebGLProgram | null = null;
+    renderParameters?: ReturnType<typeof getParameters>;
 
     matrix?: Float32Array;
 
@@ -95,6 +107,7 @@ export class StandardFirework extends BaseFirework {
         super(gl);
 
         this.transform.s3 = 10;
+        this.transform.y = -700;
     }
 
     init() {
@@ -103,7 +116,7 @@ export class StandardFirework extends BaseFirework {
         const { gl } = this;
 
         // init programs
-        const { initTransParameters, initTransProgram } = this.initProgram();
+        const { initTransParameters, initTransProgram, stage2InitTransParameters, stage2InitTransProgram } = this.initProgram();
         // init buffers
         const { positionBuffers, velocityBuffers, stateBuffers } = this.initBuffers();
 
@@ -172,11 +185,11 @@ export class StandardFirework extends BaseFirework {
 
         // create initial transform feedback needed status
         const initVa = this.createVaStatus([
-            {
-                buffer: positionBuffers[1]!,
-                location: initTransParameters!.oldPosition_seed as number,
-                numComponent: 4
-            }
+            // {
+            //     buffer: positionBuffers[1]!,
+            //     location: initTransParameters!.oldPosition_seed as number,
+            //     numComponent: 4
+            // }
         ])!;
 
         const initTf = this.createTfStatus([
@@ -190,6 +203,9 @@ export class StandardFirework extends BaseFirework {
             initTransParameters,
             initVa,
             initTf,
+
+            stage2InitTransParameters,
+            stage2InitTransProgram,
         };
 
         this.state = FireWorkState.Idle;
@@ -230,19 +246,6 @@ export class StandardFirework extends BaseFirework {
         // render
         gl.useProgram(this.renderProgram);
         gl.bindVertexArray(this.currentStatus.renderVa);
-        // const clipMatrix = new Float32Array([
-        //     2 / 100, 0, 0, 0,
-        //     0, 2 / 100, 0, 0,
-        //     0, 0, 1, 0,
-        //     0,0, 0, 1
-        // ]);
-        // const transformMatrix = composeMatrix(
-        //     [0, 0.1, 0],
-        //     [0, 0, 0, 1],
-        //     [0.5, 0.5, 0.5]
-        // );
-        // const matrix = matrixMultiply(transformMatrix, clipMatrix);
-
 
         this.matrix = matrixMultiply(this.viewProjectionMatrix!, this.transform.matrix, this.matrix);
         
@@ -286,7 +289,7 @@ export class StandardFirework extends BaseFirework {
     restart() {
         if (this.state === FireWorkState.Active) {
             this.state = FireWorkState.Idle;
-        }
+        } 
 
         this.start();
     }
@@ -330,11 +333,39 @@ export class StandardFirework extends BaseFirework {
         gl.bindVertexArray(null);
     }
 
+    private stage2InitTransformFeedback() {
+        if (this.initTransformFeedbackStatus == null) {
+            return;
+        }
+
+        const { gl } = this;
+
+        const {
+            stage2InitTransParameters,
+            stage2InitTransProgram,
+            initTf,
+            initVa,
+        } = this.initTransformFeedbackStatus;
+
+        if (this.currentStatus.id !== 0) {
+            const temp = this.nextStatus;
+            this.nextStatus = this.currentStatus;
+            this.currentStatus = temp;
+        }
+
+        gl.useProgram(stage2InitTransProgram);
+        gl.bindVertexArray(initVa);
+
+        gl.uniform1f(stage2InitTransParameters!.currentTime, (this.prevTime - this.startTime) / 1000);
+        gl.uniform3f(stage2InitTransParameters!.initPosition, 0, 700, 0);
+        
+    }
+
     private initProgram() {
         const { gl } = this;
 
 
-        // 第一份
+        // stage 1 init transform feedback
         const initTransProgram = createProgram(
             gl,
             createShader(gl, gl.VERTEX_SHADER, stage1InitTransVert),
@@ -347,7 +378,7 @@ export class StandardFirework extends BaseFirework {
         }
         const initTransParameters = getParameters(gl, initTransProgram);
 
-        // 第二份
+        // stage 1 iter transform feedback
         this.transformProgram = createProgram(
             gl,
             createShader(gl, gl.VERTEX_SHADER, stage1IterTransVert),
@@ -359,11 +390,40 @@ export class StandardFirework extends BaseFirework {
         }
         this.transformParameters = getParameters(gl, this.transformProgram);
 
-        // 第三份
+        // stage 2 init transform feedback
+        const stage2InitTransProgram = createProgram(
+            gl, 
+            createShader(gl, gl.VERTEX_SHADER, stage2InitTransVert),
+            createShader(gl, gl.FRAGMENT_SHADER, stage2InitTransFrag),
+            ['position_seed', 'velocity_blank', 'birthTime_lifeTime_size_state']
+        );
+
+        if (!stage2InitTransProgram) {
+            throw new Error('[Firework] failed to create program (standardFirework)');
+        }
+
+        const stage2InitTransParameters = getParameters(gl, stage2InitTransProgram);
+
+
+        // stage 2 iter transform feedback
+        this.stage2TransformProgram = createProgram(
+            gl,
+            createShader(gl, gl.VERTEX_SHADER, stage2IterTransVert),
+            createShader(gl, gl.FRAGMENT_SHADER, stage2IterTransFrag),
+            ['position_seed', 'velocity_blank', 'birthTime_lifeTime_size_state']
+        );
+
+        if (!this.stage2TransformProgram) {
+            throw new Error('[Firework] failed to create program (standardFirework)');
+        }
+
+        this.stage2TransformParameters = getParameters(gl, this.stage2TransformProgram);
+
+        // render
         this.renderProgram = createProgram(
             gl,
-            createShader(gl, gl.VERTEX_SHADER, stage1RenderVert),
-            createShader(gl, gl.FRAGMENT_SHADER, stage1RenderFrag)
+            createShader(gl, gl.VERTEX_SHADER, renderVert),
+            createShader(gl, gl.FRAGMENT_SHADER, renderFrag)
         );
 
         if (!this.renderProgram) {
@@ -375,6 +435,9 @@ export class StandardFirework extends BaseFirework {
         return {
             initTransProgram,
             initTransParameters,
+
+            stage2InitTransProgram,
+            stage2InitTransParameters,
         }
 
     }
