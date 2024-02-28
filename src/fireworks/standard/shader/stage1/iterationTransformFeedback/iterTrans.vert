@@ -46,7 +46,7 @@ void main() {
         // vec3 position = oldPosition_seed.xyz + vec3(0., 0.1, 0.);
         // vec3 position = vec3(1., 3., 0.) * currentTime;
         vec3 position = oldPosition_seed.xyz + oldVelocity_blank.xyz * deltaTime;
-        if (abs(seedZ) < 0.02) {
+        if (abs(seedZ) < 0.002) {
         // if (abs(seedZ) < 1. * deltaTime) {
             // 掉队
             state = STATE_GROUP_DROP;

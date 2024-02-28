@@ -56,6 +56,8 @@ import { sleep } from "../../utils/common";
 export class StandardFirework extends BaseFirework {
     numParticle = 3000;
 
+    private stage = 0;
+
     // stage1 iter transform feedback
     transformProgram: WebGLProgram | null = null;
     transformParameters?: ReturnType<typeof getParameters>;
@@ -92,7 +94,8 @@ export class StandardFirework extends BaseFirework {
     positionBuffers!: [WebGLBuffer, WebGLBuffer];
     velocityBuffers!: [WebGLBuffer, WebGLBuffer];
     stateBuffers!: [WebGLBuffer, WebGLBuffer];
-
+    
+    // particleTexture: WebGLTexture;
     readBuffers() {
         console.log('position[0]', this.readBuffer(this.positionBuffers[0], this.numParticle * 4));
         console.log('velocity[0]', this.readBuffer(this.velocityBuffers[0], this.numParticle * 4));
@@ -103,11 +106,13 @@ export class StandardFirework extends BaseFirework {
         console.log('state[1]', this.readBuffer(this.stateBuffers[1], this.numParticle * 4));
     }
 
-    constructor(gl: WebGLContext) {
-        super(gl);
+    constructor(gl: WebGLContext, tex: WebGLTexture) {
+        super(gl, tex);
 
         this.transform.s3 = 10;
-        this.transform.y = -700;
+        this.transform.y = -500;
+
+        // this.particleTexture = this.createParticleTexture();
     }
 
     init() {
@@ -175,7 +180,7 @@ export class StandardFirework extends BaseFirework {
                         location: this.renderParameters!.birthTime_lifeTime_size_state as number,
                         numComponent: 4,
                     }
-                ])!
+                ], true, this.renderParameters!.instancePosition as number, this.renderParameters!.instanceUv as number)!
             };
         }; // end createStatus
 
@@ -216,9 +221,9 @@ export class StandardFirework extends BaseFirework {
         const now = Date.now();
 
         // TODO debug
-        gl.clearColor(0, 0, 0, 0);
-        gl.clearDepth(1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // gl.clearColor(0, 0, 0, 0);
+        // gl.clearDepth(1);
+        // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         if (!this.startTime || !this.prevTime) {
             this.startTime = now;
@@ -229,11 +234,24 @@ export class StandardFirework extends BaseFirework {
         const currentTime = (now - this.startTime) / 1000;
         // console.log(delta, currentTime)
 
+        if (this.stage === 1 && currentTime > 1) {
+            this.stage2InitTransformFeedback();
+        }
         // transform 
-        gl.useProgram(this.transformProgram);
-        gl.bindVertexArray(this.currentStatus.transformVa);
-        gl.uniform1f(this.transformParameters!.deltaTime, delta);
-        gl.uniform1f(this.transformParameters!.currentTime, currentTime);
+
+        if ( this.stage === 1) {
+            gl.useProgram(this.transformProgram);
+            gl.bindVertexArray(this.currentStatus.transformVa);
+            gl.uniform1f(this.transformParameters!.deltaTime, delta);
+            gl.uniform1f(this.transformParameters!.currentTime, currentTime);
+        } else {
+            // stage == 2
+            gl.useProgram(this.stage2TransformProgram);
+            gl.bindVertexArray(this.currentStatus.transformVa);
+            gl.uniform1f(this.stage2TransformParameters!.deltaTime, delta);
+            gl.uniform1f(this.stage2TransformParameters!.currentTime, currentTime);
+        }
+        
 
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.currentStatus.tf);
@@ -252,7 +270,14 @@ export class StandardFirework extends BaseFirework {
 
         gl.uniformMatrix4fv(this.renderParameters!.matrix, false, this.matrix);
 
-        gl.drawArrays(gl.POINTS, 0, this.numParticle);
+        // gl.drawArrays(gl.POINTS, 0, this.numParticle);
+        // gl.drawArraysInstanced(gl.POINTS, 0, 6, this.numParticle);
+
+        gl.uniform1i(this.renderParameters!.map, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.particleTexture);
+
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.numParticle);
         gl.bindVertexArray(null);
 
         this.prevTime = now;
@@ -299,6 +324,8 @@ export class StandardFirework extends BaseFirework {
             return;
         }
 
+        this.stage = 1;
+
         const { gl } = this;
 
         const {
@@ -338,6 +365,8 @@ export class StandardFirework extends BaseFirework {
             return;
         }
 
+        this.stage = 2;
+
         const { gl } = this;
 
         const {
@@ -357,8 +386,17 @@ export class StandardFirework extends BaseFirework {
         gl.bindVertexArray(initVa);
 
         gl.uniform1f(stage2InitTransParameters!.currentTime, (this.prevTime - this.startTime) / 1000);
-        gl.uniform3f(stage2InitTransParameters!.initPosition, 0, 700, 0);
-        
+        gl.uniform3f(stage2InitTransParameters!.initPosition, 0, 100, 0);
+
+        gl.enable(gl.RASTERIZER_DISCARD);
+        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, initTf);
+        gl.beginTransformFeedback(gl.POINTS);
+        gl.drawArrays(gl.POINTS, 0, this.numParticle);
+        gl.endTransformFeedback();
+        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+        gl.disable(gl.RASTERIZER_DISCARD);
+        gl.bindVertexArray(null);
+
     }
 
     private initProgram() {
@@ -469,4 +507,5 @@ export class StandardFirework extends BaseFirework {
         }
 
     }
+
 }

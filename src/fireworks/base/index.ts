@@ -22,9 +22,12 @@ export abstract class BaseFirework {
     viewProjectionMatrix?: Float32Array;
     transform = new Transform;
 
-    constructor(gl: WebGLContext) {
+    particleTexture: WebGLTexture;
+
+    constructor(gl: WebGLContext, tex: WebGLTexture) {
         this.id = idIncreasing ++;
         this.gl = gl;
+        this.particleTexture = tex;
     }
 
     abstract render(): void;
@@ -33,7 +36,7 @@ export abstract class BaseFirework {
 
     abstract restart(): any;
 
-    protected createVaStatus(statuses: BufferStatus[], forInstanced = false) {
+    protected createVaStatus(statuses: BufferStatus[], forInstanced = false, positionLocation = 0, uvLocation = 1) {
         const { gl } = this;
         const va = gl.createVertexArray();
         gl.bindVertexArray(va);
@@ -52,11 +55,53 @@ export abstract class BaseFirework {
             forInstanced && gl.vertexAttribDivisor(status.location, 1);
         });
 
-        // if (forInstanced) {
-        //     const uv = new Float32Array([
+        /**
+         * a (-1, 1) uv(0, 1) b (1, 1) uv(1, 1)
+         * c (-1, -1) uv(0, 0) d(1, -1) uv(1, 0)
+         * a b c b d c
+         */
+        if (forInstanced) {
+            const uv = new Float32Array([
+                0, 1,
+                1, 1,
+                0, 0,
+                1, 1,
+                1, 0,
+                0, 0
+            ]);
+            const uvBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(uvLocation);
+            gl.vertexAttribPointer(
+                uvLocation,
+                2,
+                gl.FLOAT,
+                false, 
+                0,
+                0
+            );
 
-        //     ])
-        // }
+            const position = new Float32Array([
+                -1, 1, 0,
+                1, 1, 0, 
+                -1, -1, 0,
+                1, 1, 0,
+                1, -1, 0,
+                -1, -1, 0
+            ]);
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, position, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(
+                positionLocation,
+                3,
+                gl.FLOAT,
+                false,
+                0, 0
+            );
+        }
 
         gl.bindVertexArray(null);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
