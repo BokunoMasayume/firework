@@ -18,14 +18,16 @@ export class FireworkFrame {
 
     camera: Camera;
 
+    pictureTexture: WebGLTexture;
+
     constructor(can: HTMLCanvasElement) {
         this.canvas = can;
         can.width = can.clientWidth * this.ratio;
         can.height = can.clientHeight * this.ratio;
 
         const width = 1000;
-        this.camera = new Camera(width, can.height / can.width * width, 0.1, 20);
-        this.camera.z = 10;
+        this.camera = new Camera(width, can.height / can.width * width, 0.1, 400);
+        this.camera.z = 200;
 
         const gl = this.canvas.getContext('webgl2');
 
@@ -34,8 +36,12 @@ export class FireworkFrame {
         }
 
         this.gl = gl;
+        this.pictureTexture = this.createParticleTexture();
 
-
+        // 设置blend
+        gl.enable(gl.BLEND);
+        gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE);
         // TODO demo
         this.postEffects.push(
             new DemoPostEffect(this.gl)
@@ -43,10 +49,10 @@ export class FireworkFrame {
 
     }
 
-    addFirework<T extends BaseFirework, R extends new (gl: WebGLContext, ...args: any[]) =>T = new (gl: WebGLContext, ...args: any[]) => T>(
+    addFirework<T extends BaseFirework, R extends new (gl: WebGLContext, tex: WebGLTexture, ...args: any[]) =>T = new (gl: WebGLContext, ...args: any[]) => T>(
         fireworkClass: R, ...args: FireworkConfigParams<R>
     ): InstanceType<R> {
-        const fw = new fireworkClass(this.gl, ...args) as InstanceType<R>;
+        const fw = new fireworkClass(this.gl, this.pictureTexture, ...args) as InstanceType<R>;
         fw.viewProjectionMatrix = this.camera.viewProjectionMatrix;
         this.fireworks.push(fw);
         return fw;
@@ -97,5 +103,34 @@ export class FireworkFrame {
         const { gl } = this;
         gl.bindFramebuffer(gl.FRAMEBUFFER, target);
         this.currentTarget = target;
+    }
+
+    createParticleTexture() {
+        const { gl } = this;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d')!;
+        const grd = ctx.createRadialGradient(50, 50, 5, 50, 50, 50);
+        grd.addColorStop(0, "white");
+        grd.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, 100, 100);
+        document.body.appendChild(canvas);
+
+        const texture = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        return texture;
     }
 }

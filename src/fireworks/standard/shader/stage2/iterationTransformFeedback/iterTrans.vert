@@ -24,7 +24,7 @@ out vec4 birthTime_lifeTime_size_state;
 #define STATE_GROUP_MEMBER 1.
 #define STATE_GROUP_DROP 2.
 
-#define GRAVITY 25.
+#define GRAVITY 5.
 
 #define DAMPEN 2.
 
@@ -42,12 +42,13 @@ float hash ( float p ) {
 void main() {
     vec3 baseVel = oldVelocity_blank.xyz;
 
+    baseVel.y = baseVel.y - deltaTime * GRAVITY;
 
     position_seed = vec4(
         oldPosition_seed.xyz + baseVel * deltaTime,
         oldPosition_seed.w
     );
 
-    velocity_blank = oldVelocity_blank;
+    velocity_blank = vec4(baseVel, oldVelocity_blank.w);
     birthTime_lifeTime_size_state = oldBirthTime_lifeTime_size_state;
 }

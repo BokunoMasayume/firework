@@ -39,10 +39,9 @@ void main() {
         seed
     );
 
+    vec3 vel = vec3(seedX, seedY, seedZ) - 0.5;
     velocity_blank = vec4(
-        seedX,
-        seedY,
-        seedZ,
+        normalize(vel),
         0.
     ) * 3.;
 

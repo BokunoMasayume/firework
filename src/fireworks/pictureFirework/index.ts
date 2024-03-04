@@ -39,7 +39,7 @@ export class PictureFirework extends BaseFirework{
 
     initPositions?: Float32Array;
 
-    particleTexture?: WebGLTexture;
+    // particleTexture?: WebGLTexture;
 
     // 内部使用
     private initTransfromFeedbackStatus?: {
@@ -54,8 +54,8 @@ export class PictureFirework extends BaseFirework{
         colorBuffers: WebGLBuffer[];
     };
 
-    constructor(gl: WebGLContext, url: string) {
-        super(gl);
+    constructor(gl: WebGLContext, tex: WebGLTexture, url: string) {
+        super(gl, tex);
         this.picUrl = url;
         // TODO 
         this.showWidth = gl.canvas.width;
